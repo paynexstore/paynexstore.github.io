@@ -455,6 +455,16 @@
     .pay-mini-box{flex:1; padding:10px 12px; border-radius:14px; background:var(--card); border:1px solid var(--border)}
     .pay-mini-box .l{font-size:11px; color:var(--muted2)}
     .pay-mini-box .v{font-size:14px; font-weight:800; margin-top:2px}
+    
+    .brand .logo {
+  background: none; /* ব্যাকগ্রাউন্ড সরিয়ে দিন */
+  /* বাকি সব আগের মতই থাকবে */
+}
+
+    .sidebar-head .mini {
+  background: none;
+  overflow: hidden; /* ইমেজের গোল বর্ডার ঠিক রাখতে */
+}
   </style>
 </head>
 <body data-theme="dark">
@@ -463,8 +473,13 @@
   <div id="auth">
     <div class="auth-card">
       <div class="brand">
-        <div class="logo"><i class="fa-solid fa-bolt"></i></div>
-        <h1 id="brand-title">ShopVault</h1>
+<div class="logo">
+  <img src="https://i.ibb.co.com/pjsc9CtS/file-00000000f358720881b2311b6e3817ec.png" 
+       alt="Logo" 
+       style="width:100%; height:100%; object-fit:cover; border-radius:14px;">
+</div>
+
+        <h1 id="brand-title">PayNex Store</h1>
         <p id="brand-tag">Premium Digital Marketplace</p>
       </div>
 
@@ -518,7 +533,7 @@
       </div>
 
       <div class="auth-note">
-        Login করে premium store ব্যবহার করুন। Admin dashboard আলাদা করে admin account দিয়ে দেখা যাবে।
+        Login করে premium store ব্যবহার করুন। ধন্যবাদ 🎉🎉🎉🎉
       </div>
     </div>
   </div>
@@ -532,9 +547,13 @@
 
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-head">
-        <div class="mini"><i class="fa-solid fa-bolt"></i></div>
+       <div class="mini">
+  <img src="https://i.ibb.co.com/pjsc9CtS/file-00000000f358720881b2311b6e3817ec.png" 
+       alt="Logo" 
+       style="width:100%; height:100%; object-fit:cover; border-radius:14px;">
+</div>
         <div class="txt">
-          <strong id="sidebar-brand">ShopVault</strong>
+          <strong id="sidebar-brand">PayNex Store</strong>
           <span id="sidebar-sub">Digital Store</span>
         </div>
       </div>
@@ -549,17 +568,17 @@
 
     <!-- NOTICE POPUP MODAL -->
     <div class="modal" id="notice-popup-modal" style="z-index:10000">
-      <div class="modal-card" style="max-width:440px;text-align:center">
+      <div class="modal-card" style="max-width:440px;text-align:center;background:#fff;color:#111;border:1px solid #e5e7eb;box-shadow:0 24px 60px rgba(0,0,0,.18)">
         <div class="modal-head" style="justify-content:flex-end;margin-bottom:8px">
-          <button class="close" onclick="closeModal('notice-popup-modal')" style="margin-left:auto"><i class="fa-solid fa-xmark"></i></button>
+          <button class="close" onclick="closeModal('notice-popup-modal')" style="margin-left:auto;background:#f3f4f6;color:#111;border:1px solid #e5e7eb"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div style="font-size:32px;margin-bottom:10px">📢</div>
-        <h3 id="np-title" style="font-family:'Space Grotesk',sans-serif;font-size:19px;margin:0 0 12px"></h3>
-        <p id="np-body" style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0 0 18px;white-space:pre-wrap"></p>
+        <div style="font-size:36px;margin-bottom:10px">📢</div>
+        <h3 id="np-title" style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:900;margin:0 0 12px;color:#111;line-height:1.25"></h3>
+        <p id="np-body" style="color:#111;font-size:17px;line-height:1.8;margin:0 0 18px;white-space:pre-wrap;font-weight:500"></p>
         <div id="np-btn-wrap" style="display:none;margin-bottom:12px">
-          <a id="np-link-btn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="width:100%;display:inline-block">দেখুন</a>
+          <a id="np-link-btn" href="#" target="_blank" rel="noopener noreferrer" class="btn" style="width:100%;display:inline-flex;background:linear-gradient(135deg,#ff0033,#cc0000);color:#fff;box-shadow:0 12px 28px rgba(255,0,51,.28);border-radius:16px;padding:14px 18px;font-weight:900;letter-spacing:.2px"><i class="fa-brands fa-youtube"></i> <span style="margin-left:8px">দেখুন</span></a>
         </div>
-        <button class="btn btn-ghost" style="width:100%" onclick="closeModal('notice-popup-modal')"><i class="fa-solid fa-xmark"></i> বন্ধ করুন</button>
+
       </div>
     </div>
 
@@ -1062,7 +1081,8 @@
         if (btnWrap && linkBtn) {
           if (np.link && np.link.trim()) {
             linkBtn.href = np.link;
-            linkBtn.textContent = np.linkText || 'দেখুন';
+            const label = (np.linkText || 'YouTube দেখুন').trim();
+            linkBtn.innerHTML = '<i class="fa-brands fa-youtube"></i> <span style="margin-left:8px">' + escapeHTML(label) + '</span>';
             btnWrap.style.display = 'block';
           } else {
             btnWrap.style.display = 'none';
