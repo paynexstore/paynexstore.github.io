@@ -1,0 +1,22 @@
+{
+  "short_name": "PayNex Store",
+  "name": "PayNex Store",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#3F51B5",
+  "background_color": "#ffffff"
+}
