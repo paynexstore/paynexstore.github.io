@@ -117,7 +117,7 @@
 
     /* AUTH */
     #auth{
-      min-height:100vh; display:grid; place-items:center; padding:24px;
+      min-height:100vh; display:none; place-items:center; padding:24px;
     }
     .auth-card{
       width:min(100%, 440px); padding:34px; border-radius:30px;
@@ -145,7 +145,7 @@
     .auth-note{font-size:12px; color:var(--muted2); margin-top:14px; line-height:1.55}
 
     /* APP */
-    #app{display:none; min-height:100vh}
+    #app{display:block; min-height:100vh}
     .sidebar{
       position:fixed; left:0; top:0; bottom:0; width:var(--sidew);
       background:rgba(10,14,28,.92); border-right:1px solid var(--border);
@@ -874,6 +874,8 @@
       navOpen: false,
       currentPage: 'home',
       activeProduct: null,
+      pendingPage: null,
+      pendingProduct: null,
       renewPricing: {
         dailyRate: 3,
         packages: []
@@ -892,6 +894,7 @@
       keys: 'My Keys',
       profile: 'Profile'
     };
+    const protectedPages = new Set(['cart', 'keys', 'profile']);
 
     const authTabs = [...document.querySelectorAll('.auth-tab')];
     const authPanels = [...document.querySelectorAll('.auth-panel')];
@@ -912,6 +915,34 @@
     function openModal(id){ document.getElementById(id).classList.add('show'); }
     function closeModal(id){ document.getElementById(id).classList.remove('show'); }
     window.closeModal = closeModal;
+
+    function showAuthScreen(tab = 'login', message = '') {
+      const authEl = document.getElementById('auth');
+      const appEl = document.getElementById('app');
+      if (authEl) authEl.style.display = 'grid';
+      if (appEl) appEl.style.display = 'none';
+      authTabs.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+      authPanels.forEach(p => p.classList.toggle('active', p.id === tab));
+      if (message) {
+        const note = document.querySelector('.auth-note');
+        if (note) note.textContent = message;
+      }
+    }
+
+    function hideAuthScreen() {
+      const authEl = document.getElementById('auth');
+      const appEl = document.getElementById('app');
+      if (authEl) authEl.style.display = 'none';
+      if (appEl) appEl.style.display = 'block';
+    }
+
+    function requireAuth(tab = 'login', message = 'এই কাজটি করতে আগে login / register করুন।') {
+      if (auth.currentUser) return true;
+      state.pendingPage = null;
+      state.pendingProduct = null;
+      showAuthScreen(tab, message);
+      return false;
+    }
 
     function escapeHTML(str) {
       const div = document.createElement('div');
@@ -1202,6 +1233,12 @@
     const _pageHistory = [];
 
     function go(page, addToHistory = true) {
+      if (protectedPages.has(page) && !auth.currentUser) {
+        state.pendingPage = page;
+        state.pendingProduct = null;
+        showAuthScreen('login', 'এই পেজ খুলতে login / register দরকার।');
+        return;
+      }
       if (addToHistory && state.currentPage && state.currentPage !== page) {
         _pageHistory.push(state.currentPage);
       }
@@ -2001,6 +2038,10 @@ async function renderStore() {
     };
 
     async function openProduct(category, id) {
+      if (!requireAuth('login', 'Buy/checkout করতে login / register করুন।')) {
+        state.pendingProduct = { category, id };
+        return;
+      }
       const snap = await get(ref(db, `products/${category}/${id}`));
       const p = snap.val();
       if (!p) return toast('Product not found', '', 'bad');
@@ -2467,6 +2508,27 @@ async function renderStore() {
       document.getElementById('cart-count').style.display = count ? 'grid' : 'none';
     }
 
+    let publicListenersAttached = false;
+    function attachPublicListeners() {
+      if (publicListenersAttached) return;
+      publicListenersAttached = true;
+      onValue(ref(db, 'settings/shop'), async (snap) => {
+        state.shop = { ...state.shop, ...(snap.val() || {}) };
+        setBranding();
+        buildNav();
+        renderPage(state.currentPage);
+      });
+      onValue(ref(db, 'settings/categories'), async (snap) => {
+        state.categories = snap.val() || { gateway: {}, apps: {} };
+        if (state.currentPage === 'home') renderHome();
+        if (state.currentPage === 'store') renderStore();
+      });
+      onValue(ref(db, 'settings/slides'), async (snap) => {
+        state.slides = Object.entries(snap.val() || {}).map(([id, x]) => ({ id, ...x })).sort((a,b)=>(a.order||0)-(b.order||0));
+        if (state.currentPage === 'home') renderHome();
+      });
+    }
+
         window.copyText = async (t) => {
       try {
         await navigator.clipboard.writeText(t);
@@ -2513,57 +2575,38 @@ async function renderStore() {
 
     
     onAuthStateChanged(auth, async (user) => {
+      const authEl = document.getElementById('auth');
+      const appEl = document.getElementById('app');
+
       if (!user) {
-        document.getElementById('auth').style.display = 'grid';
-        document.getElementById('app').style.display = 'none';
+        state.user = null;
+        state.profile = null;
+        state.requests = [];
+        hideAuthScreen();
+        await Promise.all([loadShop(), loadSlides(), loadProducts(), loadCategories(), loadRenewPricing(), loadPaymentNumbers()]);
+        buildNav();
+        updateCartCount();
+        renderPage('store');
+        go('store', false);
+        attachPublicListeners();
         return;
       }
-      document.getElementById('auth').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
+
+      hideAuthScreen();
       state.user = user;
       await Promise.all([loadShop(), loadSlides(), loadProducts(), loadUser(), sweepMyExpiredRequests(), loadRequests(), loadCategories(), loadRenewPricing(), loadPaymentNumbers()]);
       buildNav();
       updateCartCount();
-      renderPage(state.currentPage);
-      go('home');
-      // live listeners
-      onValue(ref(db, 'settings/shop'), async (snap) => {
-        state.shop = { ...state.shop, ...(snap.val() || {}) };
-        setBranding();
-        buildNav();
-        renderPage(state.currentPage);
-      });
-      onValue(ref(db, 'settings/categories'), async (snap) => {
-        state.categories = snap.val() || { gateway: {}, apps: {} };
-        if (state.currentPage === 'home') renderHome();
-        if (state.currentPage === 'store') renderStore();
-      });
-      onValue(ref(db, 'settings/slides'), async (snap) => {
-        state.slides = Object.entries(snap.val() || {}).map(([id, x]) => ({ id, ...x })).sort((a,b)=>(a.order||0)-(b.order||0));
-        if (state.currentPage === 'home') renderHome();
-      });
-      onValue(ref(db, 'products'), async () => {
-        await loadProducts();
-        if (state.currentPage === 'store') renderStore();
-        if (state.currentPage === 'home') renderHome();
-      });
-      onValue(ref(db, `orders/${user.uid}`), async () => {
-        await sweepMyExpiredRequests();
-        await loadRequests();
-        updateCartCount();
-        if (state.currentPage === 'cart') renderCart();
-      });
-      onValue(ref(db, `users/${user.uid}`), async () => {
-        await loadUser();
-        buildNav();
-        if (state.currentPage === 'profile') renderProfile();
-      });
-      setInterval(async () => {
-        if (state.currentPage === 'keys') await renderKeys();
-      }, 60000);
-      setInterval(() => {
-        sweepMyExpiredRequests();
-      }, 10 * 60 * 1000);
+      const targetPage = state.pendingPage || 'home';
+      const pendingProduct = state.pendingProduct;
+      state.pendingPage = null;
+      state.pendingProduct = null;
+      renderPage(targetPage);
+      go(targetPage, false);
+      if (pendingProduct) {
+        openProduct(pendingProduct.category, pendingProduct.id);
+      }
+      attachPublicListeners();
     });
 
     // initial theme
